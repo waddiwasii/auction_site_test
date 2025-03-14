@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Log In - Auction Site
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Log In</h1>
+
+    {% if logged_in %}
+    <!-- Logout Info -->
+    <div class="text-center">
+        <h2>Welcome, {{ username | default('Guest') }}</h2>
+        <p>You are logged in as <strong>{{ 'Admin' if isAdmin else 'User' }}</strong>.</p>
+        <form id="logout-form" method="POST">
+            <button type="submit" class="btn btn-danger">Log Out</button>
+        </form>
+    </div>
+    {% else %}
+    <!-- Login Form -->
+    <form id="login-form" method="POST">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" id="email" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" id="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Log In</button>
+    </form>
+    <p id="message" class="mt-3 text-danger"></p>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const loginForm = document.getElementById('login-form');
+        const logoutForm = document.getElementById('logout-form');
+        const message = document.getElementById('message');
+
+        // Handle Login Form Submission
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Prevent form reload
+                const formData = new FormData(loginForm);
+                const data = Object.fromEntries(formData.entries()); // Convert to JSON-compatible object
+
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Redirect on successful login
+                        window.location.href = '/';
+                    } else {
+                        // Display error message
+                        message.textContent = result.message || 'Login failed.';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    message.textContent = 'An error occurred. Please try again.';
+                }
+            });
+        }
+
+        // Handle Logout Form Submission
+        if (logoutForm) {
+            logoutForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Prevent form reload
+                try {
+                    const response = await fetch('/api/logout', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Redirect on successful logout
+                        window.location.href = '/';
+                    } else {
+                        console.error('Logout failed:', result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

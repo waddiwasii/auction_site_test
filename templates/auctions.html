@@ -1,0 +1,452 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Auctions - Auction Site
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Search and Filter -->
+    <div class="mb-4">
+        <div class="auction-search">
+            <input id="search-input" class="form-control mb-3" placeholder="Search auctions" oninput="applyFilters()">
+            <select id="category-select" class="form-select mb-3" onchange="applyFilters()">
+                <option value="">All Categories</option>
+            </select>
+            <select id="sort-select" class="form-select mb-3" onchange="applyFilters()">
+                <option value="endTime">Sort by End Time</option>
+                <option value="priceLow">Sort by Lowest Price</option>
+                <option value="priceHigh">Sort by Highest Price</option>
+            </select>
+            <select id="status-select" class="form-select mb-3" onchange="applyFilters()">
+                <option value="">All Auctions</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="done">Done</option>
+                <option value="upcoming">Upcoming</option>
+            </select>
+            
+
+            <button type="button" class="btn btn-primary w-100" onclick="applyFilters()">Apply Filters</button>
+        </div>
+    </div>
+
+    <!-- Auctions Grid -->
+    <div class="row g-4" id="auctions-container">
+        <!-- Auctions will be dynamically loaded here -->
+    </div>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination justify-content-center mt-4" id="pagination-container">
+            <!-- Pagination controls will be dynamically loaded here -->
+        </ul>
+    </nav>
+
+    <!-- Modals Container -->
+    <div id="modals-container"></div>
+</div>
+
+<script>
+    let allAuctions = []; // Store all auctions fetched from the API
+    let currentPage = 1; // Track the current page
+    const itemsPerPage = 9; // Number of items per page
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        fetchCategories();
+        fetchAuctions();
+    });
+
+    document.addEventListener('hidden.bs.modal', (event) => {
+        if (event.target.id.startsWith('auctionModal')) {
+            document.activeElement.blur(); // Clear focus from the hidden modal
+        }
+    });
+
+    // Fetch categories
+    function fetchCategories() {
+        fetch('/api/categories')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const categories = data.categories;
+                    const selectElement = document.getElementById("category-select");
+                    categories.forEach(category => {
+                        const option = document.createElement("option");
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        selectElement.appendChild(option);
+                    });
+                } else {
+                    console.error("Failed to fetch categories:", data.message);
+                }
+            })
+            .catch(error => console.error("Error fetching categories:", error));
+    }
+
+    // Fetch auctions and store them in memory
+    function fetchAuctions() {
+        fetch('/api/auctions/all?include_canceled=false')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    allAuctions = data.auctions; // Store auctions in memory
+                    displayAuctions(allAuctions); // Display all auctions initially
+                } else {
+                    console.error("Failed to fetch auctions:", data.message);
+                }
+            })
+            .catch(error => console.error("Error fetching auctions:", error));
+    }
+    
+
+    // Filter and display auctions based on user input
+    function applyFilters() {
+        const searchQuery = document.getElementById("search-input").value.toLowerCase();
+        const selectedCategory = document.getElementById("category-select").value;
+        const sortOption = document.getElementById("sort-select").value;
+        const statusFilter = document.getElementById("status-select").value; // Status filter
+    
+        // Filter auctions
+        let filteredAuctions = allAuctions.filter(auction => {
+            const matchesSearch = auction.title.toLowerCase().includes(searchQuery) || auction.description?.toLowerCase().includes(searchQuery);
+            const matchesCategory = selectedCategory === "" || auction.category_id == selectedCategory;
+            const now = new Date();
+            const auctionStarted = new Date(auction.start_datetime) <= now;
+            const auctionEnded = new Date(auction.end_datetime) < now;
+    
+            // Apply status filter
+            const matchesStatus =
+                statusFilter === "" ||
+                (statusFilter === "ongoing" && auctionStarted && !auctionEnded) ||
+                (statusFilter === "done" && auctionEnded) ||
+                (statusFilter === "upcoming" && !auctionStarted);
+    
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+    
+        // Sort auctions
+        if (sortOption === "priceLow") {
+            filteredAuctions.sort((a, b) => {
+                const priceA = a.highest_bid !== null ? a.highest_bid : a.starting_bid;
+                const priceB = b.highest_bid !== null ? b.highest_bid : b.starting_bid;
+                return priceA - priceB;
+            });
+        } else if (sortOption === "priceHigh") {
+            filteredAuctions.sort((a, b) => {
+                const priceA = a.highest_bid !== null ? a.highest_bid : a.starting_bid;
+                const priceB = b.highest_bid !== null ? b.highest_bid : b.starting_bid;
+                return priceB - priceA;
+            });
+        } else if (sortOption === "endTime") {
+            filteredAuctions.sort((a, b) => new Date(a.end_datetime) - new Date(b.end_datetime));
+        }
+    
+        // Reset to the first page if the result set changes
+        if (filteredAuctions.length === 0 || currentPage > Math.ceil(filteredAuctions.length / itemsPerPage)) {
+            currentPage = 1;
+        }
+    
+        // Update the pagination and display the auctions
+        renderPagination(filteredAuctions);
+        displayAuctions(filteredAuctions);
+    }
+    
+
+
+    // Display auctions with pagination
+    function displayAuctions(auctions) {
+        const container = document.getElementById("auctions-container");
+        const modalsContainer = document.getElementById("modals-container");
+        container.innerHTML = ""; // Clear current content
+        modalsContainer.innerHTML = ""; // Clear modals
+    
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedAuctions = auctions.slice(start, end);
+    
+        if (paginatedAuctions.length === 0) {
+            container.innerHTML = "<p>No auctions found.</p>";
+            return;
+        }
+    
+        paginatedAuctions.forEach(auction => {
+            const now = new Date();
+            const auctionStarted = new Date(auction.start_datetime) <= now; // Check if auction has started
+            const auctionEnded = new Date(auction.end_datetime) < now; // Check if auction has ended
+    
+            // Determine the bid text to display
+            let bidText;
+            if (auctionEnded) {
+                bidText = "Auction Ended";
+            } else if (!auctionStarted) {
+                bidText = "Auction Not Started"; // Display for upcoming auctions
+            } else if (auction.highest_bid === null) {
+                bidText = `Starting Bid: $${auction.starting_bid}`;
+            } else {
+                bidText = `Current Bid: $${auction.highest_bid}`;
+            }
+    
+            // Auction card
+            container.innerHTML += `
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="${auction.image || 'https://via.placeholder.com/300x200'}" class="card-img-top" alt="${auction.title}">
+                    <div class="card-body">
+                        <h5 class="card-title">${auction.title}</h5>
+                        <p class="card-text">${bidText}</p>
+                        <p class="card-text"><strong>Starts:</strong> ${auction.start_datetime}</p>
+                        <p class="card-text"><strong>Ends:</strong> ${auction.end_datetime}</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#auctionModal-${auction.id}">View Details</button>
+    
+                        <!-- Like/Dislike Buttons -->
+                        <div class="d-flex justify-content-between mt-3">
+                            <button class="btn btn-outline-success" onclick="likeAuction(${auction.id})">
+                                Like (<span id="likes-${auction.id}">${auction.likes || 0}</span>)
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="dislikeAuction(${auction.id})">
+                                Dislike (<span id="dislikes-${auction.id}">${auction.dislikes || 0}</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+    
+            // Auction modal
+            modalsContainer.innerHTML += `
+            <div id="auctionModal-${auction.id}" class="modal fade" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${auction.title}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Auction Details -->
+                            <img src="${auction.image || 'https://via.placeholder.com/300x200'}" class="img-fluid mb-3" alt="${auction.title}">
+                            <p><strong>Description:</strong> ${auction.description || "No description available."}</p>
+                            <p><strong>Starting Bid:</strong> $${auction.starting_bid}</p>
+                            <p><strong>Highest Bid:</strong> ${auction.highest_bid ? `$${auction.highest_bid}` : "No bids yet"}</p>
+                            <p><strong>Starts:</strong> ${auction.start_datetime}</p>
+                            <p><strong>Ends:</strong> ${auction.end_datetime}</p>
+            
+                            <h6>Bids:</h6>
+                            <ul id="bids-${auction.id}" class="list-group">
+                                <li class="list-group-item">Loading...</li>
+                            </ul>
+            
+                            <!-- Collapsible Section for Auto-Bid -->
+                            <div class="accordion mt-4" id="autoBidAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingAutoBid">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAutoBid-${auction.id}" aria-expanded="false" aria-controls="collapseAutoBid-${auction.id}">
+                                            Set Auto-Bid
+                                        </button>
+                                    </h2>
+                                    <div id="collapseAutoBid-${auction.id}" class="accordion-collapse collapse" aria-labelledby="headingAutoBid" data-bs-parent="#autoBidAccordion">
+                                        <div class="accordion-body">
+                                            <form onsubmit="setAutoBid(event, ${auction.id})">
+                                                <div class="mb-3">
+                                                    <label for="max-bid-${auction.id}" class="form-label">Maximum Bid</label>
+                                                    <input type="number" id="max-bid-${auction.id}" class="form-control" placeholder="Enter your maximum bid" min="1" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="increment-${auction.id}" class="form-label">Increment</label>
+                                                    <input type="number" id="increment-${auction.id}" class="form-control" placeholder="Increment per bid" value="1" min="1" required>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Set an auto-bid that automatically do competitive bidding for you up to the amount you set">Set Auto-Bid</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            ${auctionEnded
+                                ? '<button class="btn btn-danger" disabled>Auction Ended</button>'
+                                : `<button class="btn btn-success" onclick="placeBid(${auction.id})" data-bs-toggle="tooltip" data-bs-placement="top" title="Place a manual bid">Place Bid</button>`}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+    
+            // Fetch bids for the auction
+            fetch(`/api/auctions/${auction.id}/bids`)
+                .then(response => response.json())
+                .then(data => {
+                    const bidsList = document.getElementById(`bids-${auction.id}`);
+                    bidsList.innerHTML = ""; // Clear loading state
+                    if (data.success && data.bids.length > 0) {
+                        data.bids.forEach(bid => {
+                            bidsList.innerHTML += `
+                                <li class="list-group-item">
+                                    <strong>${bid.email}:</strong> $${bid.bid_amount} on ${new Date(bid.bid_datetime).toLocaleString()}
+                                </li>
+                            `;
+                        });
+                    } else {
+                        bidsList.innerHTML = "<li class='list-group-item'>No bids yet.</li>";
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error fetching bids for auction ${auction.id}:`, error);
+                    document.getElementById(`bids-${auction.id}`).innerHTML = "<li class='list-group-item'>Failed to load bids.</li>";
+                });
+        });
+    
+        renderPagination(auctions); // Update pagination controls
+
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+    
+    
+    
+    function placeBid(auctionId) {
+        const bidAmount = parseFloat(prompt("Enter your bid amount:"));
+        if (!isNaN(bidAmount) && bidAmount > 0) {
+            fetch(`/api/auctions/${auctionId}/bid`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amount: bidAmount }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Bid placed successfully!");
+                        location.reload();
+                    } else {
+                        alert(`Failed to place bid: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error placing bid:", error);
+                    alert("An error occurred. Please try again.");
+                });
+        } else {
+            alert("Invalid bid amount.");
+        }
+    }
+    
+    function setAutoBid(event, auctionId) {
+        event.preventDefault(); // Prevent the form from submitting normally
+    
+        // Retrieve input values
+        const maxBid = parseFloat(document.getElementById(`max-bid-${auctionId}`).value);
+        const increment = parseFloat(document.getElementById(`increment-${auctionId}`).value);
+    
+        // Validate inputs
+        if (isNaN(maxBid) || maxBid <= 0 || isNaN(increment) || increment <= 0) {
+            alert("Invalid input! Please ensure both Maximum Bid and Increment are positive numbers.");
+            return;
+        }
+    
+        // Make the fetch request to set the auto-bid
+        fetch(`/api/auctions/${auctionId}/autobid`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ max_bid: maxBid, increment: increment }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Auto-Bid successfully set!");
+                    location.reload(); // Reload to reflect the changes
+                } else {
+                    alert(`Failed to set Auto-Bid: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error("Error setting Auto-Bid:", error);
+                alert("An error occurred. Please try again.");
+            });
+    }
+    
+
+    // Dynamically render pagination controls
+    function renderPagination(auctions) {
+        const paginationContainer = document.getElementById("pagination-container");
+        paginationContainer.innerHTML = ""; // Clear current pagination
+
+        const totalPages = Math.ceil(auctions.length / itemsPerPage);
+
+        if (totalPages <= 1) return; // No pagination needed if only one page
+
+        // Previous button
+        paginationContainer.innerHTML += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage('prev')">Previous</a>
+            </li>
+        `;
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            paginationContainer.innerHTML += `
+                <li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>
+            `;
+        }
+
+        // Next button
+        paginationContainer.innerHTML += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changePage('next')">Next</a>
+            </li>
+        `;
+    }
+
+    // Handle page changes
+    function changePage(action) {
+        const totalPages = Math.ceil(allAuctions.length / itemsPerPage);
+
+        if (action === 'prev' && currentPage > 1) {
+            currentPage--;
+        } else if (action === 'next' && currentPage < totalPages) {
+            currentPage++;
+        } else if (typeof action === 'number') {
+            currentPage = action;
+        }
+
+        applyFilters(); // Reapply filters to update the current page
+    }
+
+    function likeAuction(auctionId) {
+        fetch(`/api/auctions/${auctionId}/like`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`likes-${auctionId}`).textContent = data.likes;
+                    document.getElementById(`dislikes-${auctionId}`).textContent = data.dislikes;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error liking auction:', error));
+    }
+    
+    function dislikeAuction(auctionId) {
+        fetch(`/api/auctions/${auctionId}/dislike`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`likes-${auctionId}`).textContent = data.likes;
+                    document.getElementById(`dislikes-${auctionId}`).textContent = data.dislikes;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error disliking auction:', error));
+    }
+
+</script>
+{% endblock %}

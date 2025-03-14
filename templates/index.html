@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Home - Auction Site
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="text-center">
+    <h1 class="display-4">Find Your Next Great Deal</h1>
+    <p class="lead">Bid on exclusive items and win big!</p>
+    <a href="{{ url_for('auctions') }}" class="btn btn-primary btn-lg">Browse Auctions</a>
+</div>
+
+<!-- Featured Items -->
+<div class="container my-5">
+    <h2 class="text-center mb-4">Featured Auctions</h2>
+    <div class="row">
+        {% for auction in top_auctions %}
+        <div class="col-md-4">
+            <div class="card">
+                <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="{{ auction.title }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ auction.title }}</h5>
+                    <p class="card-text">Starting Bid: ${{ auction.starting_bid }}</p>
+                    <a href="{{ url_for('auctions') }}" class="btn btn-primary">View All Auctions</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

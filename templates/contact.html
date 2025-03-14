@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Contact Us - Auction Site
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="text-center mb-4">Contact Us</h2>
+    <p class="text-center">Have a question or need assistance? Reach out to us!</p>
+
+    <!-- Contact Form -->
+    <form id="contact-form" class="p-4 shadow bg-white rounded">
+        <div class="mb-3">
+            <label for="name" class="form-label">Your Name</label>
+            <input type="text" id="name" name="name" class="form-control" placeholder="Enter your name" required>
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">Your Email</label>
+            <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email" required>
+        </div>
+        <div class="mb-3">
+            <label for="message" class="form-label">Your Message</label>
+            <textarea id="message" name="message" class="form-control" rows="5" placeholder="Write your message here" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Send Message</button>
+    </form>
+
+    <!-- Success Message -->
+    <div id="success-message" class="alert alert-success mt-3" style="display: none;">
+        Your message has been sent successfully!
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="alert alert-danger mt-3" style="display: none;">
+        Unable to send your message. Please try again later.
+    </div>
+</div>
+
+<script>
+    document.getElementById('contact-form').addEventListener('submit', async function (event) {
+        event.preventDefault(); // Prevent the default form submission behavior
+
+        // Get form data
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const message = document.getElementById('message').value;
+
+        try {
+            // Send data to the backend
+            const response = await fetch('/api/messages', { // Changed from '/api/contact'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, email, message }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                document.getElementById('success-message').style.display = 'block';
+                document.getElementById('error-message').style.display = 'none';
+
+                // Clear the form fields
+                document.getElementById('name').value = '';
+                document.getElementById('email').value = '';
+                document.getElementById('message').value = '';
+            } else {
+                // Show error message
+                document.getElementById('success-message').style.display = 'none';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+
+            // Show error message
+            document.getElementById('success-message').style.display = 'none';
+            document.getElementById('error-message').style.display = 'block';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,116 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Hero Section */
+.container h1 {
+    color: #007bff;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.05);
+}
+
+/* Footer */
+footer {
+    background-color: #343a40;
+}
+
+/* Auction Search Form */
+.auction-search {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+form {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pagination .page-link {
+    color: #007bff;
+    transition: background-color 0.3s;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+}
+
+/* General Backoffice Styling */
+.backoffice {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.backoffice__title {
+    color: #007bff;
+}
+
+.backoffice__tabs .nav-link.active {
+    background-color: #007bff;
+    color: #fff;
+}
+
+/* Buttons */
+.backoffice__btn {
+    margin-right: 5px;
+}
+
+.backoffice__table {
+    margin-top: 20px;
+}
+
+/* Backoffice Table Row Backgrounds */
+.table-success {
+    background-color: #d4edda;
+}
+
+.table-danger {
+    background-color: #f8d7da;
+}
+
+.table-warning {
+    background-color: #fff3cd !important;
+}
+
+.table-success {
+    background-color: #d4edda !important;
+}
+
+.btn-disabled {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+

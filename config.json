@@ -1,0 +1,9 @@
+{
+    "database": {
+        "path": "auction_site.db"
+    },
+    "app": {
+        "secret_key": "j39x74vCw5H6z0qG9kMnsT82wPjE1Ln45nUgMIc8kR",
+        "debug": true
+    }
+}

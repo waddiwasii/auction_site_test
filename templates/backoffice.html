@@ -1,0 +1,659 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Backoffice - Auction Site
+{% endblock %}
+
+{% block content %}
+<div class="container my-5 backoffice">
+    <h1 class="mb-4 backoffice__title">Admin Backoffice</h1>
+    <!-- Tabs for sections -->
+    <ul class="nav nav-tabs mb-4 backoffice__tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active backoffice__tab-link" id="auctions-tab" data-bs-toggle="tab" data-bs-target="#auctions" type="button" role="tab">Manage Auctions</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link backoffice__tab-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab">View Messages</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link backoffice__tab-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button" role="tab">Manage Categories</button>
+        </li>
+    </ul>
+    <!-- Tab Content -->
+    <div class="tab-content backoffice__content">
+        <!-- Auctions Section -->
+        <div class="tab-pane fade show active backoffice__section" id="auctions" role="tabpanel">
+            <h2>Manage Auctions</h2>
+            <button class="btn btn-primary my-3 backoffice__btn" onclick="openAuctionModal()">Create New Auction</button>
+            <!-- Auction Table -->
+            <table class="table backoffice__table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Starting Bid</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="auctions-table-body">
+                    <!-- Auctions will be dynamically loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal for Adding/Editing Auction -->
+        <div class="modal fade" id="auctionModal" tabindex="-1" aria-labelledby="auctionModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="auctionModalLabel">Create Auction</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="auction-form">
+                            <input type="hidden" id="auction-id"> <!-- Hidden field for auction ID -->
+                            <div class="mb-3">
+                                <label for="auction-title" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="auction-title" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="auction-description" class="form-label">Description</label>
+                                <textarea class="form-control" id="auction-description" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="auction-starting-bid" class="form-label">Starting Bid</label>
+                                <input type="number" step="0.01" class="form-control" id="auction-starting-bid" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="auction-start-datetime" class="form-label">Start Time</label>
+                                <input type="datetime-local" class="form-control" id="auction-start-datetime" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="auction-end-datetime" class="form-label">End Time</label>
+                                <input type="datetime-local" class="form-control" id="auction-end-datetime" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="auction-category" class="form-label">Category</label>
+                                <select class="form-control" id="auction-category" required>
+                                    <!-- Categories will be dynamically populated here -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage Bids Modal -->
+        <div class="modal fade" id="manageBidsModal" tabindex="-1" aria-labelledby="manageBidsModalLabel">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="manageBidsModalLabel">Manage Bids for Auction</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>User email</th>
+                                    <th>Bid Amount</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bids-table-body">
+                                <!-- Bids will be dynamically loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Section -->
+        <div class="tab-pane fade backoffice__section" id="messages" role="tabpanel">
+            <h2>View Messages</h2>
+            <table class="table backoffice__table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Sender Name</th>
+                        <th>Email</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                        <th>Sent At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="messages-table-body">
+                    <!-- Messages will be dynamically loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Categories Section -->
+        <div class="tab-pane fade backoffice__section" id="categories" role="tabpanel">
+            <h2>Manage Categories</h2>
+            <button class="btn btn-primary my-3 backoffice__btn" onclick="openCategoryModal()">Add New Category</button>
+            <!-- Category Table -->
+            <table class="table backoffice__table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th># Auctions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-table-body">
+                    <!-- Categories will be dynamically loaded here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Modal for Adding/Editing Category -->
+        <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="categoryModalLabel">Add/Edit Category</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="category-form">
+                            <input type="hidden" id="category-id">
+                            <div class="mb-3">
+                                <label for="category-name" class="form-label">Category Name</label>
+                                <input type="text" class="form-control" id="category-name" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let currentAuctionId = null;
+    let cachedCategories = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        fetchCategories();
+        fetchAuctions();
+        fetchMessages();
+    });
+
+    document.getElementById("manageBidsModal").addEventListener("hidden.bs.modal", () => {
+        document.getElementById("bids-table-body").innerHTML = ""; // Clear modal content
+    });
+    
+    document.getElementById("auctionModal").addEventListener("hidden.bs.modal", () => {
+        // Clear modal form fields
+        document.getElementById("auction-id").value = "";
+        document.getElementById("auction-title").value = "";
+        document.getElementById("auction-description").value = "";
+        document.getElementById("auction-starting-bid").value = "";
+        document.getElementById("auction-start-datetime").value = "";
+        document.getElementById("auction-end-datetime").value = "";
+        document.getElementById("auction-category").innerHTML = "";
+    
+        // Reset modal title to default
+        document.getElementById("auctionModalLabel").textContent = "Create Auction";
+    });
+    
+    document.getElementById("categoryModal").addEventListener("hidden.bs.modal", () => {
+        document.getElementById("category-id").value = "";
+        document.getElementById("category-name").value = "";
+    });
+       
+    function fetchAuctions() {
+        fetch('/api/auctions/all?include_canceled=true')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateAuctionsTable(data.auctions); // Populate table with auctions
+                } else {
+                    console.error("Failed to fetch back office auctions:", data.message);
+                }
+            })
+            .catch(error => console.error("Error fetching back office auctions:", error));
+    }
+
+    function fetchCategories() {
+        fetch('/api/categories/with-auction-count')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateCategoriesTable(data.categories);
+                } else {
+                    console.error("Error fetching categories:", data.message);
+                }
+            })
+            .catch(error => console.error("Error fetching categories:", error));
+    }
+
+    function fetchCategoriesForDropdown() {
+        if (cachedCategories) {
+            populateCategoryDropdown(cachedCategories);
+            return;
+        }
+        fetch('/api/categories')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                cachedCategories = data.categories;
+                populateCategoryDropdown(cachedCategories);
+            } else {
+                console.error("Error fetching categories:", data.message);
+            }
+        })
+        .catch(error => console.error("Error fetching categories:", error));
+    }
+
+    function populateAuctionsTable(auctions) {
+        const tableBody = document.getElementById("auctions-table-body");
+        tableBody.innerHTML = ""; // Clear the table body
+    
+        auctions.forEach(auction => {
+            const rowClass = auction.canceled ? "table-danger" : "table-success";
+            const status = auction.canceled ? "Canceled" : "Active";
+    
+            const row = `
+                <tr class="${rowClass}">
+                    <td>${auction.id}</td>
+                    <td>${auction.title}</td>
+                    <td>$${auction.starting_bid.toFixed(2)}</td>
+                    <td>${auction.category_name || "Uncategorized"}</td>
+                    <td>${status}</td>
+                    <td>${auction.start_datetime}</td>
+                    <td>${auction.end_datetime}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="editAuction(${auction.id})">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAuction(${auction.id})">Delete</button>
+                        <button class="btn btn-info btn-sm" onclick="manageBids(${auction.id})">Manage Bids</button>
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML("beforeend", row);
+        });
+    }     
+
+    function populateCategoriesTable(categories) {
+        const tableBody = document.getElementById("categories-table-body");
+        tableBody.innerHTML = ""; // Clear the table body
+
+        categories.forEach(category => {
+            const row = `
+                <tr>
+                    <td>${category.id}</td>
+                    <td>${category.name}</td>
+                    <td>${category.auction_count}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="openCategoryModal(${category.id}, '${category.name}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCategory(${category.id})" ${category.auction_count > 0 ? 'disabled' : ''}>Delete</button>
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML("beforeend", row);
+        });
+    }
+
+    function populateCategoryDropdown(categories) {
+        const categorySelect = document.getElementById("auction-category");
+        categorySelect.innerHTML = ""; // Clear existing options
+    
+        // Add a default "Select a category" option
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select a category";
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
+        categorySelect.appendChild(defaultOption);
+    
+        // Populate with categories
+        categories.forEach(category => {
+            const option = document.createElement("option");
+            option.value = category.id;
+            option.textContent = category.name;
+            categorySelect.appendChild(option);
+        });
+    }
+    
+    function openAuctionModal() {
+        fetchCategoriesForDropdown();
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById("auctionModal")) || 
+                            new bootstrap.Modal(document.getElementById("auctionModal"));
+        modalInstance.show();
+    }
+
+    function openCategoryModal(categoryId = null, categoryName = "") {
+        document.getElementById("category-id").value = categoryId || "";
+        document.getElementById("category-name").value = categoryName;
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById("categoryModal")) || 
+                              new bootstrap.Modal(document.getElementById("categoryModal"));
+        modalInstance.show();
+    }
+
+    document.getElementById("category-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const categoryId = document.getElementById("category-id").value;
+        const name = document.getElementById("category-name").value;
+        const endpoint = categoryId ? "/api/categories/edit" : "/api/categories/add";
+
+        fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ category_id: categoryId, name })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    fetchCategories();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById("categoryModal"));
+                    modal.hide();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error("Error saving category:", error));
+    });
+
+    function deleteCategory(categoryId) {
+        if (!confirm("Are you sure you want to delete this category?")) {
+            return;
+        }
+
+        fetch(`/api/categories/${categoryId}`, {
+            method: "DELETE"
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Category deleted successfully.");
+                    fetchCategories();
+                } else {
+                    alert(data.message || "Failed to delete category.");
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting category:", error);
+            });
+    }
+
+    function fetchMessages() {
+        console.log("Fetching messages...");
+        fetch('/api/messages')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tableBody = document.getElementById("messages-table-body");
+                    tableBody.innerHTML = ""; // Clear table
+    
+                    data.messages.forEach(message => {
+                        const isResponded = message.status === "Responded";
+                        const rowClass = isResponded ? "table-success" : "table-warning";
+                        const buttonClass = isResponded ? "btn-disabled" : "btn-success";
+                        const buttonText = isResponded ? "Responded" : "Mark as Responded";
+    
+                        const row = `
+                            <tr class="${rowClass}">
+                                <td>${message.id}</td>
+                                <td>${message.sender_name}</td>
+                                <td>${message.sender_email}</td>
+                                <td>${message.message}</td>
+                                <td>${message.status}</td>
+                                <td>${message.sent_at}</td>
+                                <td>
+                                    <button class="btn ${buttonClass} btn-sm" 
+                                        ${isResponded ? "disabled" : `onclick="markMessageAsResponded(${message.id})"`}>
+                                        ${buttonText}
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.insertAdjacentHTML("beforeend", row);
+                    });
+                } else {
+                    alert("Failed to fetch messages.");
+                }
+            })
+            .catch(error => console.error("Error fetching messages:", error));
+    }
+    
+    function markMessageAsResponded(messageId) {
+        fetch(`/api/messages/respond/${messageId}`, {
+            method: "POST"
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Message marked as responded.");
+                fetchMessages(); // Refresh the table
+            } else {
+                alert("Error marking message as responded: " + data.message);
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+    
+    function editAuction(auctionId) {
+        // Fetch auction details
+        fetch(`/api/auctions/${auctionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const auction = data.auction;
+    
+                    // Fetch categories to populate the dropdown
+                    fetch('/api/categories')
+                        .then(response => response.json())
+                        .then(categoryData => {
+                            if (categoryData.success) {
+                                const categoryDropdown = document.getElementById("auction-category");
+    
+                                // Clear existing options
+                                categoryDropdown.innerHTML = "";
+    
+                                // Populate dropdown with categories
+                                categoryData.categories.forEach(category => {
+                                    const option = document.createElement("option");
+                                    option.value = category.id;
+                                    option.textContent = category.name;
+    
+                                    // Preselect the current category
+                                    if (category.id === auction.category_id) {
+                                        option.selected = true;
+                                    }
+    
+                                    categoryDropdown.appendChild(option);
+                                });
+    
+                                // Pre-fill modal with auction details
+                                document.getElementById("auction-id").value = auctionId;
+                                document.getElementById("auction-title").value = auction.title;
+                                document.getElementById("auction-description").value = auction.description;
+                                document.getElementById("auction-starting-bid").value = auction.starting_bid;
+                                document.getElementById("auction-start-datetime").value = auction.start_datetime.replace(" ", "T");
+                                document.getElementById("auction-end-datetime").value = auction.end_datetime.replace(" ", "T");
+    
+                                // Update modal title
+                                document.getElementById("auctionModalLabel").textContent = "Edit Auction";
+    
+                                // Show the modal
+                                const modal = new bootstrap.Modal(document.getElementById("auctionModal"));
+                                modal.show();
+                            } else {
+                                alert("Error fetching categories: " + categoryData.message);
+                            }
+                        })
+                        .catch(error => console.error("Error fetching categories:", error));
+                } else {
+                    alert("Error fetching auction details: " + data.message);
+                }
+            })
+            .catch(error => console.error("Error fetching auction details:", error));
+    }    
+    
+    function updateAuction(auctionId) {
+        const title = document.getElementById("auction-title").value;
+        const description = document.getElementById("auction-description").value;
+        const startingBid = parseFloat(document.getElementById("auction-starting-bid").value);
+        const categoryId = parseInt(document.getElementById("auction-category").value);
+        const endDatetime = document.getElementById("auction-end-datetime").value;
+    
+        const payload = { title, description, starting_bid: startingBid, category_id: categoryId, end_datetime: endDatetime };
+    
+        fetch(`/api/auctions/${auctionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Auction updated successfully!");
+                    fetchAuctions(); // Refresh table
+                    const modal = bootstrap.Modal.getInstance(document.getElementById("auctionModal"));
+                    modal.hide();
+                } else {
+                    alert("Error updating auction: " + data.message);
+                }
+            })
+            .catch(error => console.error("Error updating auction:", error));
+    }
+
+    function deleteAuction(auctionId) {
+        if (!confirm("Are you sure you want to cancel this auction?")) {
+            return;
+        }
+    
+        fetch(`/api/auctions/${auctionId}`, {
+            method: "DELETE",
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Auction canceled successfully!");
+                    fetchAuctions(); // Refresh table
+                } else {
+                    alert("Error canceling auction: " + data.message);
+                }
+            })
+            .catch(error => console.error("Error canceling auction:", error));
+    }
+
+    function manageBids(auctionId) {
+        currentAuctionId = auctionId;
+    
+        // Fetch bids for the auction
+        fetch(`/api/auctions/${auctionId}/bids`)
+            .then(response => response.json())
+            .then(data => {
+                const bidsTable = document.getElementById('bids-table-body');
+                bidsTable.innerHTML = ''; // Clear previous data
+    
+                if (data.success) {
+                    if (data.bids.length === 0) {
+                        bidsTable.innerHTML = '<tr><td colspan="4">No bids available.</td></tr>';
+                    } else {
+                        data.bids.forEach(bid => {
+                            const row = `
+                                <tr>
+                                    <td>${bid.email}</td>
+                                    <td>$${bid.bid_amount}</td>
+                                    <td>${new Date(bid.bid_datetime).toLocaleString()}</td>
+                                    <td>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteBid(${bid.bid_id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `;
+                            bidsTable.insertAdjacentHTML('beforeend', row);
+                        });
+                    }
+                } else {
+                    bidsTable.innerHTML = '<tr><td colspan="4">Error fetching bids.</td></tr>';
+                }
+    
+                // Show the modal after data is populated
+                const modalElement = document.getElementById('manageBidsModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modalInstance.show();
+            })
+            .catch(error => {
+                console.error('Error fetching bids:', error);
+                alert('Failed to fetch bids. Please try again.');
+            });
+    }
+    
+    
+    function deleteBid(bidId) {
+        if (!confirm('Are you sure you want to delete this bid?')) return;
+
+        fetch(`/api/bids/${bidId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Bid deleted successfully.');
+                    manageBids(currentAuctionId); // Refresh the modal contents
+                } else {
+                    alert('Error deleting bid: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error deleting bid:', error));
+    }
+
+    document.getElementById("auction-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+    
+        const auctionId = document.getElementById("auction-id").value;
+        const title = document.getElementById("auction-title").value;
+        const description = document.getElementById("auction-description").value;
+        const startingBid = document.getElementById("auction-starting-bid").value;
+        const startDatetimeRaw = document.getElementById("auction-start-datetime").value;
+        const endDatetimeRaw = document.getElementById("auction-end-datetime").value;
+        const categoryId = document.getElementById("auction-category").value;
+    
+        // Convert datetime to desired format
+        const startDatetime = startDatetimeRaw.replace("T", " ");
+        const endDatetime = endDatetimeRaw.replace("T", " ");
+    
+        const payload = {
+            title,
+            description,
+            starting_bid: parseFloat(startingBid),
+            start_datetime: startDatetime,
+            end_datetime: endDatetime,
+            category_id: parseInt(categoryId),
+        };
+    
+        const endpoint = auctionId ? `/api/auctions/${auctionId}` : "/api/auctions";
+    
+        fetch(endpoint, {
+            method: auctionId ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    alert(auctionId ? "Auction updated successfully!" : "Auction created successfully!");
+                    fetchAuctions();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById("auctionModal"));
+                    modal.hide();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch((error) => console.error("Error saving auction:", error));
+    });
+    
+</script>
+{% endblock %}
